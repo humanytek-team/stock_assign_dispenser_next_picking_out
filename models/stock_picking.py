@@ -38,30 +38,60 @@ class StockPicking(osv.osv):
             stock_picking = self.browse(cr, uid, stock_picking_id, context)
             dispenser_user_id = stock_picking.dispenser_user_id.id
             stock_picking_min_date = stock_picking.min_date
-            picking_type_delivery_order = self.pool.get(
-                'ir.model.data').get_object_reference(
-                    cr, uid, 'stock', 'picking_type_out')[1]
 
             domain_search = [
-                ('picking_type_id', '=', picking_type_delivery_order),
+                ('picking_type_code', '=', 'outgoing'),
                 ('dispenser_user_id', '=', False),
                 ('min_date', '>=', stock_picking_min_date),
+                ('state', 'in', ['assigned', 'partially_available']),
                 ]
+
+            StockDispenser = self.pool.get('stock.dispenser')
+
+            dispensers_activated_and_free = StockDispenser.search(
+                cr,
+                uid,
+                [('active_and_free', '=', True)],
+                context=context
+            )
+
             next_pickings_ids_without_dispenser = self.search(
                 cr,
                 uid,
                 domain_search,
                 context=context,
                 order='min_date',
-                limit=1)
+                limit=len(dispensers_activated_and_free)+1)
 
             if next_pickings_ids_without_dispenser:
-                next_picking_id = next_pickings_ids_without_dispenser[0]
-                self.write(
-                    cr,
-                    uid,
-                    next_picking_id,
-                    {'dispenser_user_id': dispenser_user_id},
-                    context)
+
+                if dispensers_activated_and_free:
+
+                    for pos in range(
+                        0, len(next_pickings_ids_without_dispenser)):
+
+                        next_picking_id = \
+                            next_pickings_ids_without_dispenser[pos]
+
+                        self.write(
+                            cr,
+                            uid,
+                            next_picking_id,
+                            {
+                                'dispenser_user_id':
+                                dispensers_activated_and_free[pos]
+                                },
+                            context)
+
+                if len(next_pickings_ids_without_dispenser) == len(
+                        dispensers_activated_and_free) + 1:
+
+                    next_picking_id = next_pickings_ids_without_dispenser[-1]
+                    self.write(
+                        cr,
+                        uid,
+                        next_picking_id,
+                        {'dispenser_user_id': dispenser_user_id},
+                        context)
 
         return do_transfer
