@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2017-11-14
+### changed
+- Includes recently activated dispensers in method of assignation of dispenser in next delivery order.
 
 ## [1.0.0] - 2017-08-31
 ### added
